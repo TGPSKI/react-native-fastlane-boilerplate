@@ -1,0 +1,16 @@
+###############
+##### iOS #####
+###############
+
+app_identifier ''
+apple_id ''
+# Developer Portal Team ID
+team_id ''
+team_name ''
+
+###################
+##### ANDROID #####
+###################
+
+json_key_file ''
+package_name ''

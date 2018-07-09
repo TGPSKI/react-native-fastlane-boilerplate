@@ -1,0 +1,50 @@
+###################
+##### STRINGS #####
+###################
+
+@cp_release = '*NEW CODEPUSH RELEASE*\n *%s:%s* => %s release successful\n *Source:* %s \n\n'
+@cp_promote = '*NEW CODEPUSH RELEASE*\n *%s:%s* => alpha -> prod promotion successful\n *Source:* %s \n\n'
+@new_build = '*NEW DEVELOPMENT BUILD*\n *%s:%s* successful\n *Source:* %s \n\n'
+@new_build_app_store = '*NEW PRODUCTION BUILD*\n *%s:%s* successful, uploaded to app store\n *Source:* %s \n\n'
+
+#####################
+##### FUNCTIONS #####
+#####################
+
+def debug_options(options, print)
+  if print then
+    puts options.inspect
+  end
+end
+
+#################
+##### LANES #####
+#################
+
+desc 'webhook'
+private_lane :webhook do |options|
+  # message: string
+  # success: true/false
+  # additional payloads: git_branch, git_author, git_commit
+  # example: webhook message:'Testing webhook',success:true,payloads:['']
+
+  if options[:add_payload]
+    slack(
+      message: options[:message],
+      success: options[:success],
+      default_payloads: options[:payloads],
+      use_webhook_configured_username_and_icon: true,
+      channel: options[:channel] || 'notifications',
+      payload: Hash[options[:payload]['title'],options[:payload]['content']]
+    )
+  else
+    slack(
+      message: options[:message],
+      success: options[:success],
+      default_payloads: options[:payloads],
+      use_webhook_configured_username_and_icon: true,
+      channel: options[:channel] || 'notifications',
+    )
+  end
+end
+

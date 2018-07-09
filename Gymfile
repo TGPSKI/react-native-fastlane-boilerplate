@@ -1,0 +1,8 @@
+##############################
+##### iOS Build Settings #####
+##############################
+
+workspace 'ios/'
+build_path 'ios/Build'
+clean true
+include_bitcode false
