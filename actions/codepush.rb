@@ -1,3 +1,7 @@
+# Codepush - Fastlane action
+# Original implementation by Jeremy Kun (j2kun)
+# Updates by Tyler Pate (TGPSKI)
+
 module Fastlane
   module Actions
     module SharedValues
@@ -155,7 +159,7 @@ module Fastlane
       end
 
       def self.authors
-        ["j2kun"]
+        ["j2kun", "tgpski"]
       end
 
       def self.is_supported?(platform)
