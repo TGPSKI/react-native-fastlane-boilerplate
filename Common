@@ -1,5 +1,7 @@
 ###################
+###################
 ##### STRINGS #####
+###################
 ###################
 
 @cp_release = '*NEW CODEPUSH RELEASE*\n *%s:%s* => %s release successful\n *Source:* %s \n\n'
@@ -8,7 +10,9 @@
 @new_build_app_store = '*NEW PRODUCTION BUILD*\n *%s:%s* successful, uploaded to app store\n *Source:* %s \n\n'
 
 #####################
+#####################
 ##### FUNCTIONS #####
+#####################
 #####################
 
 def debug_options(options, print)
@@ -17,8 +21,15 @@ def debug_options(options, print)
   end
 end
 
+def copyEnvForBuildType(buildType)
+  dir = File.expand_path('..', Dir.pwd)
+  sh('cp', '%s/env/env.%s' % [dir, buildType], '%s/.env' % dir)
+end
+
+#################
 #################
 ##### LANES #####
+#################
 #################
 
 desc 'webhook'
@@ -34,7 +45,7 @@ private_lane :webhook do |options|
       success: options[:success],
       default_payloads: options[:payloads],
       use_webhook_configured_username_and_icon: true,
-      channel: options[:channel] || 'notifications',
+      channel: options[:channel],
       payload: Hash[options[:payload]['title'],options[:payload]['content']]
     )
   else
@@ -43,7 +54,7 @@ private_lane :webhook do |options|
       success: options[:success],
       default_payloads: options[:payloads],
       use_webhook_configured_username_and_icon: true,
-      channel: options[:channel] || 'notifications',
+      channel: options[:channel],
     )
   end
 end
