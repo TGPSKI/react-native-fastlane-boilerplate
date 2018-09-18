@@ -1,3 +1,7 @@
+# React Native Fastlane Boilerplate
+
+**Part of the [React Native Devops Guide](https://medium.com/@tgpski/react-native-devops-guide-2d8e4755ebee).**
+
 fastlane documentation
 ================
 # Installation
