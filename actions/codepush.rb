@@ -1,6 +1,6 @@
 # Codepush - Fastlane action
-# Original implementation by Jeremy Kun (j2kun)
-# Updates by Tyler Pate (TGPSKI)
+# Original implementation by Jeremy Kun (@j2kun)
+# Updates by Tyler Pate (@TGPSKI)
 
 module Fastlane
   module Actions

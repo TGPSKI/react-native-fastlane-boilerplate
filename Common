@@ -1,13 +1,12 @@
-###################
-###################
-##### STRINGS #####
-###################
-###################
+fastlane_require 'JSON'
 
-@cp_release = '*NEW CODEPUSH RELEASE*\n *%s:%s* => %s release successful\n *Source:* %s \n\n'
-@cp_promote = '*NEW CODEPUSH RELEASE*\n *%s:%s* => alpha -> prod promotion successful\n *Source:* %s \n\n'
-@new_build = '*NEW DEVELOPMENT BUILD*\n *%s:%s* successful\n *Source:* %s \n\n'
-@new_build_app_store = '*NEW PRODUCTION BUILD*\n *%s:%s* successful, uploaded to app store\n *Source:* %s \n\n'
+#################
+#################
+##### CONST #####
+#################
+#################
+
+@package_json_path = ''
 
 #####################
 #####################
@@ -16,14 +15,50 @@
 #####################
 
 def debug_options(options, print)
+  # Prints out all options, useful for debugging w/ Jenkins
+
   if print then
     puts options.inspect
   end
 end
 
-def copyEnvForBuildType(buildType)
+def copy_env_for_build_type(buildType)
+  # Copies env files to project root
+  # filename format: env.[buildType]
+  #
+  # example: $PROJECT_ROOT/env/env.release
+
   dir = File.expand_path('..', Dir.pwd)
   sh('cp', '%s/env/env.%s' % [dir, buildType], '%s/.env' % dir)
+end
+
+def handle_env_and_options(environment, options, isString=false, default=nil)
+  # Tristate selector - env vars, cli options, defaults
+  # Handles string and boolean types
+
+  output = nil
+  if isString == true
+    # Handle strings
+    if environment != nil
+      output = environment
+    elsif options != nil
+      output = options
+    elsif default != nil
+      output = default
+    else
+      output = nil
+    end
+  else
+    # Handle bools
+    if environment == true
+      output = true
+    elsif options == true
+      output = true
+    else
+      output = false
+    end
+  end
+  return output
 end
 
 #################
@@ -31,31 +66,3 @@ end
 ##### LANES #####
 #################
 #################
-
-desc 'webhook'
-private_lane :webhook do |options|
-  # message: string
-  # success: true/false
-  # additional payloads: git_branch, git_author, git_commit
-  # example: webhook message:'Testing webhook',success:true,payloads:['']
-
-  if options[:add_payload]
-    slack(
-      message: options[:message],
-      success: options[:success],
-      default_payloads: options[:payloads],
-      use_webhook_configured_username_and_icon: true,
-      channel: options[:channel],
-      payload: Hash[options[:payload]['title'],options[:payload]['content']]
-    )
-  else
-    slack(
-      message: options[:message],
-      success: options[:success],
-      default_payloads: options[:payloads],
-      use_webhook_configured_username_and_icon: true,
-      channel: options[:channel],
-    )
-  end
-end
-

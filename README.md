@@ -1,7 +1,3 @@
-# React Native Fastlane Boilerplate
-
-**Part of the [React Native Devops Guide](https://medium.com/@tgpski/react-native-devops-guide-2d8e4755ebee).**
-
 fastlane documentation
 ================
 # Installation
@@ -24,11 +20,6 @@ or alternatively using `brew cask install fastlane`
 fastlane fastlane_test
 ```
 Test lane
-### codepush_dev
-```
-fastlane codepush_dev
-```
-Codepush development build
 
 ----
 
@@ -37,16 +28,17 @@ Codepush development build
 ```
 fastlane ios dev
 ```
-
-
-----
-
-## Android
-### android dev
+iOS development build
+### ios staging
 ```
-fastlane android dev
+fastlane ios staging
 ```
-
+iOS staging build
+### ios release
+```
+fastlane ios release
+```
+iOS release build, upload to App Store
 
 ----
 
