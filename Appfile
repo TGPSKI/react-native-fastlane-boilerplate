@@ -16,5 +16,8 @@ team_name ''
 ###################
 ###################
 
-json_key_file ''
 package_name ''
+
+# Credentials
+# https://docs.fastlane.tools/getting-started/android/setup/#collect-your-google-credentials
+json_key_file ''

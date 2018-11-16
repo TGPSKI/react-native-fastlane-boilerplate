@@ -7,7 +7,7 @@ fastlane_require 'dotenv'
 dir = File.expand_path('..', Dir.pwd).freeze
 
 # used for debugging options with Jenkins
-print_options = false
+print_options = false.freeze
 
 #################
 #################
@@ -18,8 +18,8 @@ print_options = false
 PROJECT_NAME = 'myCoolApp'.freeze
 
 ## iOS ##
-USES_COCOAPODS = true
-USES_MATCH = false
+USES_COCOAPODS = true.freeze
+USES_MATCH = false.freeze
 
 IOS_APP_SPECIFIER = 'com.tgpski.myCoolApp'.freeze
 XCODE_PROJECT_PATH = "ios/#{PROJECT_NAME}.xcodeproj".freeze
@@ -43,8 +43,16 @@ RELEASE_CODESIGNING_IDENTITY = ''.freeze
 BUILT_PRODUCTS_PATH = "#{dir}/ios/Build/Products".freeze
 
 ## Android ##
-ANDROID_APP_SPECIFIER = 'com.my.coolApp'.freeze
+AND_APP_SPECIFIER = 'com.tgpski.myCoolApp'.freeze
 APP_BUILD_GRADLE_PATH = 'android/app/build.gradle'.freeze
+
+AND_DEV_BUNDLE_ID_SUFFIX = 'dev'.freeze
+AND_DEV_BUILT_PPRODUCTS_PATH = "#{dir}/android/app/build/outputs/apk/debug/app-debug.apk".freeze
+
+AND_STAGING_BUNDLE_ID_SUFFIX = 'staging'.freeze
+AND_STAGING_BUILT_PPRODUCTS_PATH = "#{dir}/android/app/build/outputs/apk/staging/app-staging-unsigned.apk".freeze
+
+AND_RELEASE_BUILT_PPRODUCTS_PATH = "#{dir}/android/app/build/outputs/apk/release/app-release.apk".freeze
 
 ######################
 ######################
@@ -52,42 +60,56 @@ APP_BUILD_GRADLE_PATH = 'android/app/build.gradle'.freeze
 ######################
 ######################
 
-before_all do
-  yarn(
-    command: 'install',
-    package_path: './package.json'
-  )
+before_all do |lane, options|
 
-  if USES_COCOAPODS
-    cocoapods(
-      podfile: 'ios/Podfile',
-      use_bundle_exec: false
+  parsed_options = {
+    :skip_before => handle_env_and_options(
+      ENV['SKIP_BEFORE'],
+      options[:skip_before],
+      false,
+      false
     )
+  }
+
+  unless parsed_options[:skip_before]
+    yarn(
+      command: 'install',
+      package_path: './package.json'
+    )
+
+    unless lane_context[SharedValues::PLATFORM_NAME].to_s.eql?('android')
+      if USES_COCOAPODS
+        cocoapods(
+          podfile: 'ios/Podfile',
+          use_bundle_exec: false
+        )
+      end
+    end
+
+    yarn(
+      command: 'checkmate',
+      package_path: './package.json'
+    )
+
+    ANDROID_VERSION_NAME = get_version_name(
+      gradle_file_path: APP_BUILD_GRADLE_PATH
+    ).freeze
+    ANDROID_VERSION_CODE = get_version_code(
+      gradle_file_path: APP_BUILD_GRADLE_PATH
+    ).freeze
+
+    IOS_VERSION_NUMBER = get_version_number(
+      xcodeproj: XCODE_PROJECT_PATH,
+      target: PROJECT_NAME
+    ).freeze
+    IOS_REVISION_NUMBER = get_build_number_from_plist(
+      xcodeproj: XCODE_PROJECT_PATH,
+      target: PROJECT_NAME
+    ).freeze
+
+    puts "Android: #{ANDROID_VERSION_NAME},#{ANDROID_VERSION_CODE} |" \
+         " iOS: #{IOS_VERSION_NUMBER},#{IOS_REVISION_NUMBER}"
   end
-
-  yarn(
-    command: 'checkmate',
-    package_path: './package.json'
-  )
-
-  ANDROID_VERSION_NAME = get_version_name(
-    gradle_file_path: APP_BUILD_GRADLE_PATH
-  )
-  ANDROID_VERSION_CODE = get_version_code(
-    gradle_file_path: APP_BUILD_GRADLE_PATH
-  )
-
-  IOS_VERSION_NUMBER = get_version_number(
-    xcodeproj: XCODE_PROJECT_PATH,
-    target: PROJECT_NAME
-  )
-  IOS_REVISION_NUMBER = get_build_number_from_plist(
-    xcodeproj: XCODE_PROJECT_PATH,
-    target: PROJECT_NAME
-  )
-
-  puts "Android: #{ANDROID_VERSION_NAME},#{ANDROID_VERSION_CODE} |" \
-       " iOS: #{IOS_VERSION_NUMBER},#{IOS_REVISION_NUMBER}"
 end
 
 desc 'Test lane'
@@ -265,18 +287,6 @@ platform :ios do
         options[:xcargs],
         true,
         ''
-      ),
-      :hook => handle_env_and_options(
-        ENV['HOOK'],
-        options[:hook],
-        false,
-        false
-      ),
-      :channel => handle_env_and_options(
-        ENV['CHANNEL'],
-        options[:channel],
-        true,
-        ''
       )
     }
 
@@ -306,25 +316,155 @@ end
 #########################
 #########################
 
-# platform :android do
-#   desc 'Android development build'
-#   lane :dev do |options|
-#     debug_options(options, print_options)
-#     copy_env_for_build_type('dev')
-#   end
+platform :android do
+  desc 'Android development build'
+  lane :dev do |options|
+    debug_options(options, print_options)
+    copy_env_for_build_type('dev')
 
-#   desc 'Android staging build'
-#   lane :staging do |options|
-#     debug_options(options, print_options)
-#     copy_env_for_build_type('staging')
-#   end
+    parsed_options = {
+      :badge => handle_env_and_options(
+        ENV['BADGE'],
+        options[:badge],
+        false,
+        false
+      ),
+      :clean => handle_env_and_options(
+        ENV['CLEAN'],
+        options[:clean],
+        false,
+        true
+      ),
+      :install => handle_env_and_options(
+        ENV['INSTALL'],
+        options[:install],
+        false,
+        false
+      )
+    }
 
-#   desc 'Android release build, upload to Play Store'
-#   lane :release do |options|
-#     debug_options(options, print_options)
-#     copy_env_for_build_type('release')
-#   end
-# end
+    if parsed_options[:badge]
+      add_badge(
+        shield: "#{ANDROID_VERSION_NAME}-#{ANDROID_VERSION_CODE}-orange",
+        glob: '/android/app/src/main/res/mipmap-*/ic_launcher.png',
+        alpha: true,
+        shield_scale: "0.75"
+      )
+    end
+
+    if parsed_options[:clean]
+      gradle(
+        task: 'clean',
+        project_dir: './android/'
+      )
+    end
+
+    gradle(
+      task: 'assemble',
+      build_type: 'debug',
+      project_dir: './android/'
+    )
+
+    if parsed_options[:install]
+      adb(
+        command: "uninstall #{AND_APP_SPECIFIER}.#{AND_DEV_BUNDLE_ID_SUFFIX}"
+      )
+      adb(
+        command: "install #{AND_DEV_BUILT_PPRODUCTS_PATH}"
+      )
+      adb(
+        command: "shell monkey -p #{AND_APP_SPECIFIER}.#{AND_DEV_BUNDLE_ID_SUFFIX}
+                  -c android.intent.category.LAUNCHER 1"
+      )
+    end
+  end
+
+  desc 'Android staging build'
+  lane :staging do |options|
+    debug_options(options, print_options)
+    copy_env_for_build_type('staging')
+
+    parsed_options = {
+      :badge => handle_env_and_options(
+        ENV['BADGE'],
+        options[:badge],
+        false,
+        false
+      ),
+      :clean => handle_env_and_options(
+        ENV['CLEAN'],
+        options[:clean],
+        false,
+        true
+      ),
+      :install => handle_env_and_options(
+        ENV['INSTALL'],
+        options[:install],
+        false,
+        false
+      )
+    }
+
+    if parsed_options[:badge]
+      add_badge(
+        shield: "#{ANDROID_VERSION_NAME}-#{ANDROID_VERSION_CODE}-orange",
+        glob: '/android/app/src/main/res/mipmap-*/ic_launcher.png',
+        alpha: true,
+        shield_scale: "0.75"
+      )
+    end
+
+    if parsed_options[:clean]
+      gradle(
+        task: 'clean',
+        project_dir: './android/'
+      )
+    end
+
+    gradle(
+      task: 'assemble',
+      build_type: 'staging',
+      project_dir: './android/'
+    )
+
+    if parsed_options[:install]
+      adb(
+        command: "uninstall #{AND_APP_SPECIFIER}.#{AND_STAGING_BUNDLE_ID_SUFFIX}"
+      )
+      adb(
+        command: "install #{AND_STAGING_BUILT_PPRODUCTS_PATH}"
+      )
+      adb(
+        command: "shell monkey -p #{AND_APP_SPECIFIER}.#{AND_STAGING_BUNDLE_ID_SUFFIX}
+                  -c android.intent.category.LAUNCHER 1"
+      )
+    end
+  end
+
+  desc 'Android release build, upload to Play Store'
+  lane :release do |options|
+    debug_options(options, print_options)
+    copy_env_for_build_type('release')
+
+    parsed_options = {
+      :play_store => handle_env_and_options(
+        ENV['PLAY_STORE'],
+        options[:play_store],
+        false,
+        false
+      )
+    }
+
+    gradle(task: 'clean', project_dir: "./android/")
+
+    gradle(task: "assemble", build_type: "release", project_dir: "./android/")
+
+    if parsed_options[:play_store]
+      supply(track: "alpha", apk: AND_RELEASE_BUILT_PPRODUCTS_PATH)
+    end
+
+  end
+end
 
 ##########################
 ##########################
